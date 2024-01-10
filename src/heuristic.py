@@ -135,19 +135,11 @@ class Heuristic:
         """Finds the maximum width that can fit to this point"""
         # If this point is a left point
         if self.segments[i].point.is_left:
-            pointer = i + 1
-            # Move until the first higher segment to the right
-            while self.segments[pointer].y <= self.segments[i].y:
-                pointer += 1
-            w_max = self.segments[pointer].x - self.segments[i].x
-            return w_max
+            h_right = self.segments[i].point.h_right
+            return self.segments[h_right].x - self.segments[i].x
         else:
-            pointer = i - 2
-            # Move until the first higher segment to the left
-            while self.segments[pointer].y <= self.segments[i - 1].y:
-                pointer -= 1
-            w_max = self.segments[i].x - self.segments[pointer + 1].x
-            return w_max
+            h_left = self.segments[i].point.h_left
+            return self.segments[i].x - self.segments[h_left + 1].x
 
     def find_top_waste(self, i, rec_width, rec_height):
         # We consider the space left at the top of the rectangle if we place this rectangle as wasted space

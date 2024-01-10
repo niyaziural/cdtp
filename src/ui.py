@@ -34,27 +34,37 @@ class UI:
         # Solution draw area
         self.canvas = tkinter.Canvas()
         self.canvas.config(width=500, height=500, borderwidth=10, relief="raised")
-        self.canvas.grid(row=0, column=2, rowspan=50)
+        self.canvas.grid(row=0, column=3, rowspan=50)
         # How many new sequences to be generated in tabu search
         self.tabu_seq_length_slider = tkinter.Scale(label="Tabu search new sequence count", length=250, from_=5, to=15, orient="horizontal")
         self.tabu_seq_length_slider.set(DEF_TABU_SEQ_LENGTH)
-        self.tabu_seq_length_slider.grid(row=0, column=0, padx=(0, 50), sticky="S")
+        self.tabu_seq_length_slider.grid(row=0, column=0, columnspan=2, padx=(0, 50), sticky="S")
         # Tenure multiplier for how long an item stays in the tabu list
         self.tabu_tenure_slider = tkinter.Scale(label="Tabu tenure", length=250, from_=2, to=4, orient="horizontal")
         self.tabu_tenure_slider.set(DEF_TABU_TENURE)
-        self.tabu_tenure_slider.grid(row=1, column=0, padx=(0, 50), sticky="N")
+        self.tabu_tenure_slider.grid(row=1, column=0, columnspan=2, padx=(0, 50), sticky="N")
         # Open test file button
         self.open_file_button = tkinter.Button(text="Open test file", command=self.open_test_file)
-        self.open_file_button.grid(row=2, column=0, padx=(0, 50))
+        self.open_file_button.grid(row=2, column=0, columnspan=2, padx=(0, 50))
         # Run button
         self.run_button = tkinter.Button(text="Run", state="disabled", command=self.run)
-        self.run_button.grid(row=50, column=0, padx=(0, 50))
+        self.run_button.grid(row=50, column=0, columnspan=2, padx=(0, 50))
         # Save gcode for the solution button
         self.gcode_button = tkinter.Button(text="Save G-code", state="disabled", command=self.save_gcode)
-        self.gcode_button.grid(row=50, column=2)
+        self.gcode_button.grid(row=50, column=3)
         # Console area to write logs
         self.text_widget = tkinter.Text(wrap="word", height=20, width=50)
-        self.text_widget.grid(row=3, column=0, rowspan=47, padx=(0, 50))
+        self.text_widget.grid(row=3, column=0, columnspan=2, rowspan=45, padx=(0, 50))
+        
+        # Elements for placement height choice
+        self.height_choice = tkinter.IntVar()
+        self.opt_height_radio = tkinter.Radiobutton(state="disabled", text="Place in optimum height.", variable=self.height_choice, value=0)
+        self.cust_height_radio = tkinter.Radiobutton(state="disabled",text="Place in higher height: ", variable=self.height_choice, value=1)
+        self.cust_height = tkinter.Entry(width=5, state="disabled")
+        self.opt_height_radio.grid(row=48, column=0, sticky="e")
+        self.cust_height_radio.grid(row=49, column=0, sticky="e")
+        self.cust_height.grid(row=49, column=1, sticky="w", padx=0)
+
         # Turtle for drawing
         self.t = turtle.RawTurtle(canvas=self.canvas, visible=False)
         # Events to inform other deamons to terminate if one of them finds a solution
@@ -111,7 +121,7 @@ class UI:
                 self.text_widget.delete(1.0, tkinter.END)  # Clear previous content
                 rectangle_count = int(dataset.readline())
                 self.bin_width, self.bin_height = map(int, dataset.readline().split(" "))
-
+                self.opt_height = self.bin_height
                 for i in range(rectangle_count):
                     rec_width, rec_height = map(int, dataset.readline().split(" ")[:2])
                     # Log each rectangle to the console
@@ -127,7 +137,12 @@ class UI:
             self.text_widget.insert(tkinter.END, f"Optimum height: {self.bin_height}\n--------\n")
             self.text_widget.see(tkinter.END)
             self.text_widget.config(state="disabled")
-
+            # Enable height choices
+            self.opt_height_radio.config(state="active")
+            self.cust_height_radio.config(state="active")
+            self.cust_height.config(state="normal")
+            self.cust_height.delete(0, tkinter.END)
+            self.cust_height.insert(tkinter.END, self.opt_height + 1)
             self.run_button.config(state="active")
 
 
@@ -146,6 +161,11 @@ class UI:
         # Get the configuration values from the sliders on the UI
         tabu_seq_length = self.tabu_seq_length_slider.get()
         tabu_tenure = self.tabu_tenure_slider.get()
+        # Get the height choice
+        if self.height_choice.get() == 0:
+            self.bin_height = self.opt_height
+        else:
+            self.bin_height = int(self.cust_height.get())
         # Set the timer
         t0 = time.time()
         # Create an iterative doubling binary search object
@@ -163,10 +183,10 @@ class UI:
         # Get the solution from the queue
         best_seq = return_queue.get()
         # Check if the solution is an optimal solution and log it
-        if best_seq[1] == self.bin_height:
+        if best_seq[1] == self.opt_height:
             self.text_widget.insert(tkinter.END, f"An optimal solution found in: {time.time() - t0:.2f}s\n")
         else:
-            self.text_widget.insert(tkinter.END, f"A near optimal solution found with height of {best_seq[1]} in: {time.time() - t0:.2f}s\n")
+            self.text_widget.insert(tkinter.END, f"A desired solution found with the custom height of {best_seq[1]} in: {time.time() - t0:.2f}s\n")
         self.text_widget.see(tkinter.END)
         # Disable the console area
         self.text_widget.config(state="disabled")

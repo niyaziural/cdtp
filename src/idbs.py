@@ -15,9 +15,9 @@ class IDBS:
         that we give to our tabu search. That's where "iterative doubling" comes from. This means at the start
         we are confident that our tabu search and heuristic can place the rectangles into the given height. So we don't
         want to waste much time at the start. But as the search height gets lower we want our tabu search to search deeper
-        and wider range. If we give a lower iteration count to tabu search it means it won't search as deeper. If we give a
+        and wider range. If we give a lower iteration count to tabu search it means it won't search as deep. If we give a
         large iteration count it will widen the search range of the tabu search by allowing it to generate new sequences from the
-        previous best sequence longer. If we reach the optimal height and place all the rectangles to this height successfully, then we 
+        previous best sequence longer. If we reach the desired height and place all the rectangles to this height successfully, then we 
         return with success."""
         self.time_limit = time_limit
         self.bin_width = bin_width
@@ -34,9 +34,14 @@ class IDBS:
     def run(self, rectangles, quit, found, return_queue):
         self.rectangles = copy.deepcopy(rectangles)
         self.reset_rectangles()
-        # Compute lower bound
+
+        # Lower bound for problems with no known optimum height
         total_rec_area = sum(rec.width * rec.height for rec in self.rectangles)
-        lower_bound = math.ceil(total_rec_area / self.bin_width)
+        # lower_bound = math.ceil(total_rec_area / self.bin_width)
+
+        # Lower bound as known optimum height
+        lower_bound = self.bin_height
+        
         # UB = LB  * 1.1
         upper_bound = math.ceil(lower_bound * 1.1)
         
@@ -57,7 +62,7 @@ class IDBS:
                 if self.solver.run(self.rectangles, self.bin_width, height, iter, quit):
                     # Record solution
                     self.best_seq = (copy.deepcopy(self.solver.best_seq), height)
-                    # Return the solution immediately if we found an optimal height solution
+                    # Return the solution immediately if we found a solution with desired height
                     if height == self.bin_height:
                         return_queue.put(self.best_seq)
                         # Inform other processes that this process found a solution
